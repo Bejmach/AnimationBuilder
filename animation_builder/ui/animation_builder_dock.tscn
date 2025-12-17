@@ -1,0 +1,31 @@
+[gd_scene load_steps=2 format=3 uid="uid://dkbk5p5xw1g36"]
+
+[ext_resource type="Script" uid="uid://dbdyi0v31sjkg" path="res://addons/animation_builder/ui/animation_builder_dock.gd" id="1_43ctn"]
+
+[node name="AnimationBuilderDock" type="VBoxContainer"]
+offset_right = 157.0
+offset_bottom = 106.0
+script = ExtResource("1_43ctn")
+
+[node name="FilePath" type="LineEdit" parent="."]
+layout_mode = 2
+placeholder_text = "File path"
+
+[node name="LibName" type="LineEdit" parent="."]
+layout_mode = 2
+placeholder_text = "Lib name"
+
+[node name="SpritePath" type="LineEdit" parent="."]
+layout_mode = 2
+text = "Sprite2D"
+placeholder_text = "Sprite2D path"
+
+[node name="Overwrite" type="CheckBox" parent="."]
+layout_mode = 2
+text = "Overwrite"
+
+[node name="Button" type="Button" parent="."]
+layout_mode = 2
+text = "Bake animations"
+
+[connection signal="pressed" from="Button" to="." method="_on_button_pressed"]
