@@ -7,6 +7,8 @@ const AnimationBuilderData = preload("res://addons/animation_builder/core/animat
 
 const AnimParamContext = preload("res://addons/animation_builder/core/anim_param_context.gd");
 const AnimParam = preload("res://addons/animation_builder/core/anim_param.gd");
+const AnimParamRotation = preload("res://addons/animation_builder/core/anim_param_rotation.gd");
+const AnimParamRotationAngle = preload("res://addons/animation_builder/core/anim_param_rotation_angle.gd");
 const AnimParamRotatable = preload("res://addons/animation_builder/core/anim_param_rotatable.gd");
 const AnimParamFrameTime = preload("res://addons/animation_builder/core/anim_param_frametime.gd");
 const AnimParamVariant = preload("res://addons/animation_builder/core/anim_param_variant.gd");
@@ -152,6 +154,12 @@ func parse_function_params(values: Array) -> Array:
 		elif lower.begins_with("$frametime:"):
 			var frames: float = float(value.substr(value.find(":") + 1).strip_edges());
 			var pushed_value: AnimParamFrameTime = AnimParamFrameTime.new(frames);
+			return_values.push_back(pushed_value);
+		elif lower.begins_with("$rotation_angle"):
+			var pushed_value: AnimParamRotationAngle = AnimParamRotationAngle.new();
+			return_values.push_back(pushed_value);
+		elif lower.begins_with("$rotation"):
+			var pushed_value: AnimParamRotation = AnimParamRotation.new();
 			return_values.push_back(pushed_value);
 		elif lower.begins_with("$i:"):
 			var param_value: int = int(value.substr(value.find(":") + 1).strip_edges());

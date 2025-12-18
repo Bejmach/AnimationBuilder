@@ -248,6 +248,18 @@ Supported values:
 - ``tween.ease_in_out``
 - ``tween.ease_out_in``
 
+### $rotation(_angle)
+``` json
+"$rotation(_angle)"
+```
+
+rotation / rotation angle of current direction in float
+
+Rotation formula:
+``angle = (current_direction / total_directions)``
+
+Rotation is clockwise
+
 ### $rotatable:(x, y)
 ``` json
 "$rotatable:(1, 0)"
