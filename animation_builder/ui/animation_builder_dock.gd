@@ -28,7 +28,7 @@ func _on_button_pressed() -> void:
 		push_error("First selected node is not AnimationPlayer");
 		return;
 	
-	var config: AnimationBuilderConfig = AnimationBuilderConfig.new(file_path.text, lib_name.text, sprite_path.text, overwrite.toggle_mode);
+	var config: AnimationBuilderConfig = AnimationBuilderConfig.new(file_path.text, lib_name.text, sprite_path.text, overwrite.button_pressed);
 	var builder = AnimationBuilder.new();
 	
 	builder.run(animation_player, config);
