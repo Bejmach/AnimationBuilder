@@ -175,7 +175,54 @@ Mixed direction counts will break frame indexing
 
 Default value (if omitted): 16
 
-## 4. Functions (method tracks)
+## 4. Values (value tracks)
+
+Values still needs to be improved and for now I wouldn't encourage you to use them. It's better to use functions for now
+
+Values change on frame
+
+Example:
+
+``` json
+"values": [
+    {
+        "path": "Sprite2D:rotation",
+        "frame": 2.0,
+        "value": "$rotation",
+    },
+    { ... }
+]
+```
+
+> if you want multiple changes of the same value, you need to make multiple elements with same path (temporary)
+
+### Value properties
+
+path (required)
+
+``` json
+"path": "Sprite2D:rotation",
+```
+
+Path to node value in scene
+
+frame (required)
+
+``` json
+"frame": "2.5",
+```
+
+Time of value change in frames
+
+value (required)
+
+``` json
+"value": "$b:true",
+```
+
+Value to change as param from Parameter System (Read more in section 6.)
+
+## 5. Functions (method tracks)
 
 Animations may define method calls that are triggered at specific frames.
 
@@ -217,7 +264,7 @@ Array of parameters passed to the method
 
 Parameters are defined using typed tokens (see below)
 
-## 5. Parameter system
+## 6. Parameter system
 
 Parameters are written as strings and parsed by the builder.
 
@@ -328,7 +375,7 @@ Accepted values:
 
 ``false, f``
 
-## 6. Example animation entry
+## 7. Example animation entry
 ``` json
 {
   "name": "attack",
@@ -349,14 +396,14 @@ Accepted values:
 }
 ```
 
-7. Common errors
+8. Common errors
 Error	Cause
 - Animations overlap	start + length conflicts
 - Missing frames	Gaps between animations
 - Wrong directions	Animations use different directions
 - Invalid param	Unsupported $type:
 - Method not called	Method name not found on node
-8. Summary of critical rules
+9. Summary of critical rules
 
 - ✔ All animations must use the same directions value
 - ✔ Animations must not overlap
