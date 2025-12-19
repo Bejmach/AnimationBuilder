@@ -49,6 +49,7 @@ func run(animation_player: AnimationPlayer, builder_config: AnimationBuilderConf
 			print("Overwriting library \"", builder_config.lib_name, "\"");
 		else:
 			push_error("Animation library \"", builder_config.lib_name, "\" already exist");
+			return;
 	
 	var animation_lib: AnimationLibrary = AnimationLibrary.new();
 	
