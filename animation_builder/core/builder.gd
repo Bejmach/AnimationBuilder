@@ -118,7 +118,6 @@ func parse_animation(builder_config: AnimationBuilderConfig, animation: Dictiona
 	
 	var anim_data: AnimationData = AnimationData.new(anim_name, anim_start, anim_len, anim_loop,
 		anim_values, anim_method_locations, anim_method_params);
-	print(anim_data);
 	return anim_data;
 
 func parse_functions(values: Array) -> Array[Dictionary]:
@@ -212,7 +211,7 @@ func parse_animation_values(values: Dictionary) -> Dictionary[String, Array]:
 			push_error("Track %s does not contain any animations" % path);
 			continue;
 		
-		var track_interpolation = const_dict.get(track_data.get("interpolation", Animation.INTERPOLATION_NEAREST), Animation.INTERPOLATION_NEAREST);
+		var track_interpolation = const_dict.get(track_data.get("interpolation", "animation.interpolation_nearest"), Animation.INTERPOLATION_NEAREST);
 		var value_array: Array = track_data.get("values");
 		for value: Dictionary in value_array:
 			if !(value.has("frame") && value.has("value")):
@@ -326,8 +325,6 @@ func insert_animations(builder_config: AnimationBuilderConfig, builder_data: Ani
 		anim.track_set_path(VFrames_track, builder_config.sprite_path + ":vframes");
 		
 		anim.track_insert_key(VFrames_track, 0, builder_data.directions);
-		
-		print("Animation: ", animation);
 		
 		if animation.values.size() > 0:
 			for path in animation.values:
