@@ -6,3 +6,6 @@ func _init() -> void:
 
 func resolve(ctx: AnimParamContext) -> Variant:
 	return null;
+
+func _to_string() -> String:
+	return "NULLPARAM"

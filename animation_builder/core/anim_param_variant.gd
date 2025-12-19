@@ -8,3 +8,6 @@ func _init(_value: Variant) -> void:
 
 func resolve(ctx: AnimParamContext) -> Variant:
 	return value;
+
+func _to_string() -> String:
+	return str(value);

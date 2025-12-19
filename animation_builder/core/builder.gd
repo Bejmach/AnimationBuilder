@@ -13,6 +13,8 @@ const AnimParamRotatable = preload("res://addons/animation_builder/core/anim_par
 const AnimParamFrameTime = preload("res://addons/animation_builder/core/anim_param_frametime.gd");
 const AnimParamVariant = preload("res://addons/animation_builder/core/anim_param_variant.gd");
 
+const ValueData = preload("res://addons/animation_builder/core/value_data.gd");
+
 var const_dict: Dictionary[String, Variant] = {
 	"tween.trans_linear": Tween.TRANS_LINEAR,
 	"tween.trans_sine": Tween.TRANS_SINE,
@@ -81,7 +83,7 @@ func parse_animation(builder_config: AnimationBuilderConfig, animation: Dictiona
 	var anim_start: int;
 	var anim_len: int;
 	var anim_loop: bool;
-	var anim_directions: int;
+	var anim_values: Dictionary[String, Array] = {};
 	var anim_method_locations: Dictionary[String, int] = {};
 	var anim_method_params: Dictionary[String, Array] = {};
 	if animation.has("name"):
@@ -100,15 +102,18 @@ func parse_animation(builder_config: AnimationBuilderConfig, animation: Dictiona
 		push_error("animation in lib \"", builder_config.lib_name, "\" does not have \"length\" entry");
 		return null;
 	anim_loop = animation.get("loop", true);
-	anim_directions = animation.get("directions", 16);
+	
+	if animation.has("values"):
+		anim_values = parse_animation_values(animation.get("values"));
 	
 	if animation.has("functions"):
 		var parsed_functions: Array[Dictionary] = parse_functions(animation.get("functions"));
 		anim_method_locations = parsed_functions[0];
 		anim_method_params = parsed_functions[1];
 	
-	var anim_data: AnimationData = AnimationData.new(anim_name, anim_start, anim_len, anim_loop, anim_directions,
-		anim_method_locations, anim_method_params);
+	var anim_data: AnimationData = AnimationData.new(anim_name, anim_start, anim_len, anim_loop,
+		anim_values, anim_method_locations, anim_method_params);
+	print(anim_data);
 	return anim_data;
 
 func parse_functions(values: Array) -> Array[Dictionary]:
@@ -134,62 +139,88 @@ func parse_functions(values: Array) -> Array[Dictionary]:
 		method_locations.set(function_name, function_start);
 		method_params.set(function_name, function_params);
 	return [method_locations, method_params];
-	
-func parse_function_params(values: Array) -> Array:
-	var return_values: Array = [];
-	for value: String in values:
-		var lower = value.to_lower();
-		if const_dict.has(lower):
-			return_values.push_back(AnimParamVariant.new(const_dict.get(lower)));
-		elif lower.begins_with("$rotatable:"):
-			var x_start = value.find("(") + 1;
-			var x_end = value.find(",");
-			var y_start = value.find(",") + 1;
-			var y_end = value.find(")");
-			var x: float = float(value.substr(x_start, x_end - x_start).strip_edges());
-			var y: float = float(value.substr(y_start, y_end - y_start).strip_edges());
-			var vector: Vector2 = Vector2(x, y);
-			var pushed_value: AnimParamRotatable = AnimParamRotatable.new(vector);
-			return_values.push_back(pushed_value);
-		elif lower.begins_with("$frametime:"):
-			var frames: float = float(value.substr(value.find(":") + 1).strip_edges());
-			var pushed_value: AnimParamFrameTime = AnimParamFrameTime.new(frames);
-			return_values.push_back(pushed_value);
-		elif lower.begins_with("$rotation_angle"):
-			var pushed_value: AnimParamRotationAngle = AnimParamRotationAngle.new();
-			return_values.push_back(pushed_value);
-		elif lower.begins_with("$rotation"):
-			var pushed_value: AnimParamRotation = AnimParamRotation.new();
-			return_values.push_back(pushed_value);
-		elif lower.begins_with("$i:"):
-			var param_value: int = int(value.substr(value.find(":") + 1).strip_edges());
-			return_values.push_back(AnimParamVariant.new(param_value));
-		elif lower.begins_with("$f:"):
-			var param_value: float = float(value.substr(value.find(":") + 1).strip_edges());
-			return_values.push_back(AnimParamVariant.new(param_value));
-		elif lower.begins_with("$s:"):
-			var param_value: String = value.substr(value.find(":") + 1);
-			return_values.push_back(AnimParamVariant.new(param_value));
-		elif lower.begins_with("$v2:"):
-			var x_start = value.find("(") + 1;
-			var x_end = value.find(",");
-			var y_start = value.find(",") + 1;
-			var y_end = value.find(")");
-			var x: float = float(value.substr(x_start, x_end - x_start).strip_edges());
-			var y: float = float(value.substr(y_start, y_end - y_start).strip_edges());
-			var vector: Vector2 = Vector2(x, y);
-			return_values.push_back(AnimParamVariant.new(vector));
-		elif lower.begins_with("$b:"):
-			var param_str: String = lower.substr(lower.find(":") + 1).strip_edges();
-			match param_str:
-				"true", "t":
-					return_values.push_back(AnimParamVariant.new(true));
-				"false", "f":
-					return_values.push_back(AnimParamVariant.new(false));
-				_:
-					push_error("Cant parse bool value from content: ", param_str);
+
+func parse_vector2(value: String) -> Vector2:
+	var x_start = value.find("(") + 1;
+	var x_end = value.find(",");
+	var y_start = value.find(",") + 1;
+	var y_end = value.find(")");
+	var x: float = float(value.substr(x_start, x_end - x_start).strip_edges());
+	var y: float = float(value.substr(y_start, y_end - y_start).strip_edges());
+	var vector: Vector2 = Vector2(x, y);
+	return vector;
+
+func parse_param(value: String) -> AnimParam:
+	var lower = value.to_lower();
+	if const_dict.has(lower):
+		return AnimParamVariant.new(const_dict.get(lower));
+	elif lower.begins_with("$rotatable:"):
+		var pushed_value: AnimParamRotatable = AnimParamRotatable.new(parse_vector2(value));
+		return pushed_value;
+	elif lower.begins_with("$frametime:"):
+		var frames: float = float(value.substr(value.find(":") + 1).strip_edges());
+		var pushed_value: AnimParamFrameTime = AnimParamFrameTime.new(frames);
+		return pushed_value;
+	elif lower.begins_with("$rotation_angle"):
+		var pushed_value: AnimParamRotationAngle = AnimParamRotationAngle.new();
+		return pushed_value;
+	elif lower.begins_with("$rotation"):
+		var pushed_value: AnimParamRotation = AnimParamRotation.new();
+		return pushed_value;
+	elif lower.begins_with("$i:"):
+		var param_value: int = int(value.substr(value.find(":") + 1).strip_edges());
+		return AnimParamVariant.new(param_value);
+	elif lower.begins_with("$f:"):
+		var param_value: float = float(value.substr(value.find(":") + 1).strip_edges());
+		return AnimParamVariant.new(param_value);
+	elif lower.begins_with("$s:"):
+		var param_value: String = value.substr(value.find(":") + 1);
+		return AnimParamVariant.new(param_value);
+	elif lower.begins_with("$v2:"):
+		var x_start = value.find("(") + 1;
+		var x_end = value.find(",");
+		var y_start = value.find(",") + 1;
+		var y_end = value.find(")");
+		var x: float = float(value.substr(x_start, x_end - x_start).strip_edges());
+		var y: float = float(value.substr(y_start, y_end - y_start).strip_edges());
+		var vector: Vector2 = Vector2(x, y);
+		return AnimParamVariant.new(vector);
+	elif lower.begins_with("$b:"):
+		var param_str: String = lower.substr(lower.find(":") + 1).strip_edges();
+		match param_str:
+			"true", "t":
+				return AnimParamVariant.new(true);
+			"false", "f":
+				return AnimParamVariant.new(false);
+			_:
+				push_error("Cant parse bool value from content: ", param_str);
+	else:
+		push_error("type not supported for animations");
+	return null;
+
+func parse_animation_values(values: Array) -> Dictionary[String, Array]:
+	var return_values: Dictionary[String, Array] = {};
+	for entry: Dictionary in values:
+		if !(entry.has("path") && entry.has("frame") && entry.has("value")):
+			push_error("Cant parse animation value that does not contain \"path\", \"frame\" and \"value\" fields in \"", entry, "\"");
+		var path: String = entry.get("path");
+		var frame: float = float(entry.get("frame"));
+		var param: AnimParam = parse_param(entry.get("value"));
+		
+		var value: ValueData = ValueData.new(path, frame, param);
+		
+		if return_values.has(path):
+			(return_values.get(path) as Array).push_back(value);
 		else:
-			push_error("type not supported for animations");
+			return_values.set(path, [value]);
+	return return_values;
+
+func parse_function_params(values: Array) -> Array[AnimParam]:
+	var return_values: Array[AnimParam] = [];
+	for value: String in values:
+		var param = parse_param(value);
+		if param:
+			return_values.push_back(param);
 	return return_values;
 
 func parse_animation_builder_data(builder_config: AnimationBuilderConfig) -> AnimationBuilderData:
@@ -242,8 +273,8 @@ func insert_animations(builder_config: AnimationBuilderConfig, builder_data: Ani
 	var frame_time = 1.0 / float(builder_data.frames_per_second);	
 	var texture: Texture2D = load(builder_data.texture);
 	
-	for i in range(0, animation.directions, 1):
-		var anim_param_context = AnimParamContext.new(i, animation.directions, frame_time);
+	for i in range(0, builder_data.directions, 1):
+		var anim_param_context = AnimParamContext.new(i, builder_data.directions, frame_time);
 		
 		var anim_name = animation.anim_name + str(i);
 		var anim = Animation.new();
@@ -281,7 +312,19 @@ func insert_animations(builder_config: AnimationBuilderConfig, builder_data: Ani
 		anim.value_track_set_update_mode(VFrames_track, Animation.UPDATE_DISCRETE);
 		anim.track_set_path(VFrames_track, builder_config.sprite_path + ":vframes");
 		
-		anim.track_insert_key(VFrames_track, 0, animation.directions);
+		anim.track_insert_key(VFrames_track, 0, builder_data.directions);
+		
+		if animation.values.size() > 0:
+			for path in animation.values:
+				var values: Array = animation.values.get(path)
+				var value_track = anim.add_track(Animation.TYPE_VALUE);
+				anim.track_set_interpolation_loop_wrap(value_track, false);
+				anim.track_set_interpolation_type(value_track, Animation.INTERPOLATION_NEAREST);
+				anim.value_track_set_update_mode(value_track, Animation.UPDATE_DISCRETE);
+				anim.track_set_path(value_track, path);
+				
+				for value in values:
+					anim.track_insert_key(value_track, frame_time * value.frame, value.value.resolve(anim_param_context));
 		
 		if animation.method_locations.size() > 0:
 			var method_track = anim.add_track(Animation.TYPE_METHOD);
