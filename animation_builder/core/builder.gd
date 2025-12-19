@@ -13,7 +13,7 @@ const AnimParamRotatable = preload("res://addons/animation_builder/core/anim_par
 const AnimParamFrameTime = preload("res://addons/animation_builder/core/anim_param_frametime.gd");
 const AnimParamVariant = preload("res://addons/animation_builder/core/anim_param_variant.gd");
 
-const ValueData = preload("res://addons/animation_builder/core/value_data.gd");
+const TrackData = preload("res://addons/animation_builder/core/track_data.gd");
 
 var const_dict: Dictionary[String, Variant] = {
 	"tween.trans_linear": Tween.TRANS_LINEAR,
@@ -32,6 +32,11 @@ var const_dict: Dictionary[String, Variant] = {
 	"tween.ease_out": Tween.EASE_OUT,
 	"tween.ease_in_out": Tween.EASE_IN_OUT,
 	"tween.ease_out_in": Tween.EASE_OUT_IN,
+	"animation.interpolation_nearest": Animation.INTERPOLATION_NEAREST,
+	"animation.interpolation_cubic": Animation.INTERPOLATION_CUBIC,
+	"animation.interpolation_linear": Animation.INTERPOLATION_LINEAR,
+	"animation.interpolation_cubic_angle": Animation.INTERPOLATION_CUBIC_ANGLE,
+	"animation.interpolation_linear_angle": Animation.INTERPOLATION_LINEAR_ANGLE,
 };
 
 func run(animation_player: AnimationPlayer, builder_config: AnimationBuilderConfig) -> void:
@@ -198,21 +203,29 @@ func parse_param(value: String) -> AnimParam:
 		push_error("type not supported for animations");
 	return null;
 
-func parse_animation_values(values: Array) -> Dictionary[String, Array]:
+func parse_animation_values(values: Dictionary) -> Dictionary[String, Array]:
 	var return_values: Dictionary[String, Array] = {};
-	for entry: Dictionary in values:
-		if !(entry.has("path") && entry.has("frame") && entry.has("value")):
-			push_error("Cant parse animation value that does not contain \"path\", \"frame\" and \"value\" fields in \"", entry, "\"");
-		var path: String = entry.get("path");
-		var frame: float = float(entry.get("frame"));
-		var param: AnimParam = parse_param(entry.get("value"));
+	for path: String in values:
+		var track_data: Dictionary = values.get(path);
 		
-		var value: ValueData = ValueData.new(path, frame, param);
+		if !track_data.has("values"):
+			push_error("Track %s does not contain any animations" % path);
+			continue;
 		
-		if return_values.has(path):
-			(return_values.get(path) as Array).push_back(value);
-		else:
-			return_values.set(path, [value]);
+		var track_interpolation = const_dict.get(track_data.get("interpolation", Animation.INTERPOLATION_NEAREST), Animation.INTERPOLATION_NEAREST);
+		var value_array: Array = track_data.get("values");
+		for value: Dictionary in value_array:
+			if !(value.has("frame") && value.has("value")):
+				push_error("Cant parse animation value that does not contain \"frame\" or \"value\" fields in \"", value, "\"");
+			var frame: float = float(value.get("frame"));
+			var param: AnimParam = parse_param(value.get("value"));
+			
+			var anim_value: TrackData = TrackData.new(path, frame, param, track_interpolation);
+			
+			if return_values.has(path):
+				(return_values.get(path) as Array).push_back(anim_value);
+			else:
+				return_values.set(path, [anim_value]);
 	return return_values;
 
 func parse_function_params(values: Array) -> Array[AnimParam]:
@@ -314,16 +327,18 @@ func insert_animations(builder_config: AnimationBuilderConfig, builder_data: Ani
 		
 		anim.track_insert_key(VFrames_track, 0, builder_data.directions);
 		
+		print("Animation: ", animation);
+		
 		if animation.values.size() > 0:
 			for path in animation.values:
 				var values: Array = animation.values.get(path)
 				var value_track = anim.add_track(Animation.TYPE_VALUE);
 				anim.track_set_interpolation_loop_wrap(value_track, false);
-				anim.track_set_interpolation_type(value_track, Animation.INTERPOLATION_NEAREST);
 				anim.value_track_set_update_mode(value_track, Animation.UPDATE_DISCRETE);
 				anim.track_set_path(value_track, path);
 				
-				for value in values:
+				for value: TrackData in values:
+					anim.track_set_interpolation_type(value_track, value.interpolation);
 					anim.track_insert_key(value_track, frame_time * value.frame, value.value.resolve(anim_param_context));
 		
 		if animation.method_locations.size() > 0:

@@ -184,27 +184,28 @@ Values change on frame
 Example:
 
 ``` json
-"values": [
-    {
-        "path": "Sprite2D:rotation",
-        "frame": 2.0,
-        "value": "$rotation",
-    },
-    { ... }
-]
+"values": {
+    "node_path:value": {
+        "interpolation": "animation.interpolation_(type)",
+        "values": [
+            {
+                "frame": 2.5,
+                "value": "$rotation"
+            }
+        ]
+    }
+}
 ```
-
-> if you want multiple changes of the same value, you need to make multiple elements with same path (temporary)
 
 ### Value properties
 
-path (required)
+interpolation (optional)
 
 ``` json
-"path": "Sprite2D:rotation",
+"interpolation": "animation.interpolation_nearest",
 ```
 
-Path to node value in scene
+interpolation type for track
 
 frame (required)
 
@@ -294,6 +295,17 @@ Supported values:
 - ``tween.ease_out``
 - ``tween.ease_in_out``
 - ``tween.ease_out_in``
+
+### Animation constants
+
+same as tweens
+
+Supported values:
+- ``animation.interpolation_nearest``
+- ``animation.interpolation_linear``
+- ``animation.interpolation_cubic``
+- ``animation.interpolation_linear_angle``
+- ``animation.interpolation_cubic_angle``
 
 ### $rotation(_angle)
 ``` json

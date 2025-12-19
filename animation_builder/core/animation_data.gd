@@ -1,6 +1,6 @@
 extends Resource
 
-const ValueData = preload("res://addons/animation_builder/core/value_data.gd")
+const TrackData = preload("res://addons/animation_builder/core/track_data.gd")
 
 @export var anim_name: String = "";
 @export var start: int = 0;

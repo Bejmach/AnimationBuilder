@@ -1,7 +1,7 @@
 extends Resource
 
 const AnimationData = preload("res://addons/animation_builder/core/animation_data.gd");
-const ValueData = preload("res://addons/animation_builder/core/value_data.gd");
+const TrackData = preload("res://addons/animation_builder/core/track_data.gd");
 
 @export var frames_per_second: int;
 @export var lib_name: String;
