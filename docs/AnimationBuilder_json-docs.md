@@ -12,6 +12,7 @@ The JSON file contains one or more animation libraries, keyed by library name:
   "character": {
     "fps": 12,
     "texture": "res://sprites/character.png",
+    "directions": 16,
     "animations": [
       { ... }
     ]
@@ -48,6 +49,16 @@ animations (required)
 
 An array of animation definitions (see below).
 
+directions (optional)
+``` json
+"directions": 16
+```
+
+Controlls vframes for sprite
+Use one row of animations as one direction
+
+Default: 16
+
 ## 3. Animation definition
 
 Example:
@@ -58,7 +69,6 @@ Example:
   "start": 0,
   "length": 6,
   "loop": true,
-  "directions": 8,
   "functions": [ ... ]
 }
 ```
@@ -126,39 +136,6 @@ loop (optional)
 
 Whether the animation loops
 Default: true
-
-directions (optional, but critical)
-``` json
-"directions": 8
-```
-
-Number of directional variants (e.g. 4, 8, 16)
-
-Controls vertical frames (vframes)
-
-### ⚠ Direction rule (VERY IMPORTANT)
-
-ALL animations in the same library MUST use the SAME directions value
-
-Reason:
-
-All animations share the same spritesheet layout
-
-Mixed direction counts will break frame indexing
-
-#### Example (❌ invalid):
-
-``` json
-{
-  "name": "walk",
-  "directions": 8
-},
-{
-  "name": "idle",
-  "directions": 16
-}
-```
-
 
 #### Example (✅ valid):
 
@@ -230,31 +207,29 @@ Animations may define method calls that are triggered at specific frames.
 Example:
 
 ``` json
-"functions": [
-  {
-    "name": "play_sound",
-    "start": 2,
-    "params": ["$s:footstep"]
+"functions": {
+  "node_path": {
+    "method_name": [
+      {
+        "frame": 3,
+        "values": [
+          "$lib",
+          ...
+          ],
+      },
+      ...
+    ]
   }
-]
+}
 ```
 
 ### Function properties
-name (required)
+frame (optional)
 ``` json
-"name": "play_sound"
+"frame": 3
 ```
 
-Name of the method to call
-
-Must exist on the animated node
-
-start (required)
-``` json
-"start": 2
-```
-
-Frame index at which the method is called
+Frame at which the function runs
 
 params (optional)
 ``` json
@@ -306,6 +281,13 @@ Supported values:
 - ``animation.interpolation_cubic``
 - ``animation.interpolation_linear_angle``
 - ``animation.interpolation_cubic_angle``
+
+### $lib
+``` json
+"$lib"
+```
+
+name of the animation library in string
 
 ### $rotation(_angle)
 ``` json

@@ -12,8 +12,10 @@ const AnimParamRotationAngle = preload("res://addons/animation_builder/core/anim
 const AnimParamRotatable = preload("res://addons/animation_builder/core/anim_param_rotatable.gd");
 const AnimParamFrameTime = preload("res://addons/animation_builder/core/anim_param_frametime.gd");
 const AnimParamVariant = preload("res://addons/animation_builder/core/anim_param_variant.gd");
+const AnimParamLib = preload("res://addons/animation_builder/core/anim_param_lib.gd");
 
 const TrackData = preload("res://addons/animation_builder/core/track_data.gd");
+const MethodData = preload("res://addons/animation_builder/core/method_data.gd");
 
 var const_dict: Dictionary[String, Variant] = {
 	"tween.trans_linear": Tween.TRANS_LINEAR,
@@ -49,7 +51,6 @@ func run(animation_player: AnimationPlayer, builder_config: AnimationBuilderConf
 			print("Overwriting library \"", builder_config.lib_name, "\"");
 		else:
 			push_error("Animation library \"", builder_config.lib_name, "\" already exist");
-			return;
 	
 	var animation_lib: AnimationLibrary = AnimationLibrary.new();
 	
@@ -90,8 +91,7 @@ func parse_animation(builder_config: AnimationBuilderConfig, animation: Dictiona
 	var anim_len: int;
 	var anim_loop: bool;
 	var anim_values: Dictionary[String, Array] = {};
-	var anim_method_locations: Dictionary[String, int] = {};
-	var anim_method_params: Dictionary[String, Array] = {};
+	var method_values: Dictionary[String, Array] = {};
 	if animation.has("name"):
 		anim_name = animation.get("name");
 	else:
@@ -113,37 +113,33 @@ func parse_animation(builder_config: AnimationBuilderConfig, animation: Dictiona
 		anim_values = parse_animation_values(animation.get("values"));
 	
 	if animation.has("functions"):
-		var parsed_functions: Array[Dictionary] = parse_functions(animation.get("functions"));
-		anim_method_locations = parsed_functions[0];
-		anim_method_params = parsed_functions[1];
+		method_values = parse_animation_methods(animation.get("functions"));
 	
 	var anim_data: AnimationData = AnimationData.new(anim_name, anim_start, anim_len, anim_loop,
-		anim_values, anim_method_locations, anim_method_params);
+		anim_values, method_values);
 	return anim_data;
 
-func parse_functions(values: Array) -> Array[Dictionary]:
-	var method_locations: Dictionary[String, int] = {};
-	var method_params: Dictionary[String, Array] = {};
-	
-	for function: Dictionary in values:
-		var function_name: String;
-		var function_start: int;
-		var function_params: Array;
-		
-		if function.has("name"):
-			function_name = function.get("name");
-		else:
-			push_error("function does not have \"name\" entry");
-			push_error(function);
-		if function.has("start"):
-			function_start = function.get("start");
-		else:
-			push_error("function \"", function_name ,"\" does not have \"start\" entry");
-		if function.has("params"):
-			function_params = parse_function_params(function.get("params"));
-		method_locations.set(function_name, function_start);
-		method_params.set(function_name, function_params);
-	return [method_locations, method_params];
+func parse_animation_methods(values: Dictionary) -> Dictionary[String, Array]:
+	var return_values: Dictionary[String, Array] = {};
+	for path: String in values:
+		var methods: Dictionary = values.get(path);
+		for method_name: String in methods:
+			var method_calls: Array = methods.get(method_name);
+			for method_data: Dictionary in method_calls:
+				var method_frame: int = method_data.get("frame", 0);
+				var method_params: Array[AnimParam] = [];
+				
+				var value_array: Array = method_data.get("values", []);
+				for value: String in value_array:
+					method_params.push_back(parse_param(value));
+				
+				var anim_method: MethodData = MethodData.new(path, method_frame, method_name, method_params);
+				
+				if return_values.has(path):
+					(return_values.get(path) as Array).push_back(anim_method);
+				else:
+					return_values.set(path, [anim_method]);
+	return return_values;
 
 func parse_vector2(value: String) -> Vector2:
 	var x_start = value.find("(") + 1;
@@ -154,6 +150,31 @@ func parse_vector2(value: String) -> Vector2:
 	var y: float = float(value.substr(y_start, y_end - y_start).strip_edges());
 	var vector: Vector2 = Vector2(x, y);
 	return vector;
+
+func parse_animation_values(values: Dictionary) -> Dictionary[String, Array]:
+	var return_values: Dictionary[String, Array] = {};
+	for path: String in values:
+		var track_data: Dictionary = values.get(path);
+		
+		if !track_data.has("values"):
+			push_error("Track %s does not contain any animations" % path);
+			continue;
+		
+		var track_interpolation = const_dict.get(track_data.get("interpolation", Animation.INTERPOLATION_NEAREST), Animation.INTERPOLATION_NEAREST);
+		var value_array: Array = track_data.get("values");
+		for value: Dictionary in value_array:
+			if !(value.has("frame") && value.has("value")):
+				push_error("Cant parse animation value that does not contain \"frame\" or \"value\" fields in \"", value, "\"");
+			var frame: float = float(value.get("frame"));
+			var param: AnimParam = parse_param(value.get("value"));
+			
+			var anim_value: TrackData = TrackData.new(path, frame, param, track_interpolation);
+			
+			if return_values.has(path):
+				(return_values.get(path) as Array).push_back(anim_value);
+			else:
+				return_values.set(path, [anim_value]);
+	return return_values;
 
 func parse_param(value: String) -> AnimParam:
 	var lower = value.to_lower();
@@ -171,6 +192,9 @@ func parse_param(value: String) -> AnimParam:
 		return pushed_value;
 	elif lower.begins_with("$rotation"):
 		var pushed_value: AnimParamRotation = AnimParamRotation.new();
+		return pushed_value;
+	elif lower.begins_with("$lib"):
+		var pushed_value: AnimParamLib = AnimParamLib.new();
 		return pushed_value;
 	elif lower.begins_with("$i:"):
 		var param_value: int = int(value.substr(value.find(":") + 1).strip_edges());
@@ -202,31 +226,6 @@ func parse_param(value: String) -> AnimParam:
 	else:
 		push_error("type not supported for animations");
 	return null;
-
-func parse_animation_values(values: Dictionary) -> Dictionary[String, Array]:
-	var return_values: Dictionary[String, Array] = {};
-	for path: String in values:
-		var track_data: Dictionary = values.get(path);
-		
-		if !track_data.has("values"):
-			push_error("Track %s does not contain any animations" % path);
-			continue;
-		
-		var track_interpolation = const_dict.get(track_data.get("interpolation", "animation.interpolation_nearest"), Animation.INTERPOLATION_NEAREST);
-		var value_array: Array = track_data.get("values");
-		for value: Dictionary in value_array:
-			if !(value.has("frame") && value.has("value")):
-				push_error("Cant parse animation value that does not contain \"frame\" or \"value\" fields in \"", value, "\"");
-			var frame: float = float(value.get("frame"));
-			var param: AnimParam = parse_param(value.get("value"));
-			
-			var anim_value: TrackData = TrackData.new(path, frame, param, track_interpolation);
-			
-			if return_values.has(path):
-				(return_values.get(path) as Array).push_back(anim_value);
-			else:
-				return_values.set(path, [anim_value]);
-	return return_values;
 
 func parse_function_params(values: Array) -> Array[AnimParam]:
 	var return_values: Array[AnimParam] = [];
@@ -287,7 +286,7 @@ func insert_animations(builder_config: AnimationBuilderConfig, builder_data: Ani
 	var texture: Texture2D = load(builder_data.texture);
 	
 	for i in range(0, builder_data.directions, 1):
-		var anim_param_context = AnimParamContext.new(i, builder_data.directions, frame_time);
+		var anim_param_context = AnimParamContext.new(builder_config.lib_name, i, builder_data.directions, frame_time);
 		
 		var anim_name = animation.anim_name + str(i);
 		var anim = Animation.new();
@@ -327,9 +326,11 @@ func insert_animations(builder_config: AnimationBuilderConfig, builder_data: Ani
 		
 		anim.track_insert_key(VFrames_track, 0, builder_data.directions);
 		
+		#print("Animation: ", animation);
+		
 		if animation.values.size() > 0:
 			for path in animation.values:
-				var values: Array = animation.values.get(path)
+				var values: Array = animation.values.get(path);
 				var value_track = anim.add_track(Animation.TYPE_VALUE);
 				anim.track_set_interpolation_loop_wrap(value_track, false);
 				anim.value_track_set_update_mode(value_track, Animation.UPDATE_DISCRETE);
@@ -339,22 +340,19 @@ func insert_animations(builder_config: AnimationBuilderConfig, builder_data: Ani
 					anim.track_set_interpolation_type(value_track, value.interpolation);
 					anim.track_insert_key(value_track, frame_time * value.frame, value.value.resolve(anim_param_context));
 		
-		if animation.method_locations.size() > 0:
-			var method_track = anim.add_track(Animation.TYPE_METHOD);
-			anim.track_set_interpolation_loop_wrap(method_track, false);
-			anim.track_set_interpolation_type(method_track, Animation.INTERPOLATION_NEAREST);
-			anim.track_set_path(method_track, ".");
-			
-			for method in animation.method_locations:
-				var params: Array = [];
-				if animation.method_params.has(method):
-					for value in animation.method_params.get(method):
-						if value is AnimParam:
-							params.push_back(value.resolve(anim_param_context));
-						else:
-							push_error("Cant resolve non AnimParam in animation");
-				var time = animation.method_locations.get(method) * frame_time;
-				anim.track_insert_key(method_track, time, {"method": method, "args": params});
+		if animation.methods.size() > 0:
+			for path in animation.methods:
+				var method_calls: Array = animation.methods.get(path);
+				var method_track = anim.add_track(Animation.TYPE_METHOD);
+				anim.track_set_interpolation_loop_wrap(method_track, false);
+				anim.track_set_interpolation_type(method_track, Animation.INTERPOLATION_NEAREST);
+				anim.track_set_path(method_track, path);
+				
+				for method: MethodData in method_calls:
+					var params: Array = [];
+					for param: AnimParam in method.values:
+						params.push_back(param.resolve(anim_param_context));
+					anim.track_insert_key(method_track, frame_time * method.frame, {"method": method.method_name, "args": params});
 		
 		for frame in range(0, animation.length, 1):
 			anim.track_insert_key(frame_track, frame*frame_time, i*horizontal_frames + frame + animation.start);
