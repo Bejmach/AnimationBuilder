@@ -56,23 +56,11 @@ func run(animation_player: AnimationPlayer, builder_config: AnimationBuilderConf
 	
 	var builder_data = parse_animation_builder_data(builder_config);
 	
-	var horizontal_frames: int = 0;
-	for animation in builder_data.animations:
-		horizontal_frames += animation.length;
+	if !builder_data:
+		print("Oven broke :<");
+		return;
 	
-	var animation_range: Array[int] = [];
-	# check if animations overlaping
-	for animation in builder_data.animations:
-		animation_range.append_array(range(animation.start, animation.start + animation.length, 1));
-	
-	animation_range.sort();
-	
-	for i in range(0, horizontal_frames, 1):
-		if i != animation_range[i]:
-			push_error("Cant bake animations. Check if animations are overlaping, and/or missing frames");
-			push_error("expected output: ", range(0, horizontal_frames, 1));
-			push_error("actual output: ", animation_range);
-			return;
+	var horizontal_frames: int = builder_data.length;
 	
 	for animation in builder_data.animations:
 		insert_animations(builder_config, builder_data, animation_lib, animation, horizontal_frames);
@@ -277,6 +265,12 @@ func parse_animation_builder_data(builder_config: AnimationBuilderConfig) -> Ani
 		else:
 			push_error("Data in lib ", builder_config.lib_name, "does not have \"animations\" entry");
 		
+		if json_data.has("length"):
+			builder_data.length = json_data.get("length");
+		else:
+			push_error("Data in lib ", builder_config.lib_name, "does not have \"length\" entry");
+			return null
+			
 		builder_data.iso_scale = json_data.get("iso_scale", 1.0);
 		
 		return builder_data;

@@ -9,13 +9,20 @@ func _init(_value: Variant, _modyfiers: Array[String] = []) -> void:
 
 func resolve(ctx: AnimParamContext) -> Variant:
 	var return_value = value;
-	for modyfier in modyfiers:
-		if modyfier.begins_with("to_iso"):
+	for modyfier: String in modyfiers:
+		var parsed_mod: Array[String] = parse_mod(modyfier);
+		if parsed_mod[0].begins_with("to_iso"):
 			if return_value is Vector2:
 				return_value = direction_to_iso(return_value, ctx.iso_scale);
 			elif return_value is float:
 				return_value = angle_to_iso(return_value, ctx.iso_scale);
-	return value;
+		elif parsed_mod[0].begins_with("rotate_angle"):
+			if return_value is Vector2:
+				return_value = return_value.rotated(deg_to_rad(float(parsed_mod[1])));
+		elif parsed_mod[0].begins_with("rotate"):
+			if return_value is Vector2:
+				return_value = return_value.rotated(float(parsed_mod[1]));
+	return return_value;
 
 func _to_string() -> String:
 	return "AnimVariant { value: " + str(value) + ", modyfiers: " + str(modyfiers) + " }";

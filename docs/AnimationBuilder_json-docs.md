@@ -12,6 +12,7 @@ The JSON file contains one or more animation libraries, keyed by library name:
   "character": {
     "fps": 12,
     "texture": "res://sprites/character.png",
+    "length": 16,
     "directions": 16,
     "animations": [
       { ... }
@@ -49,6 +50,14 @@ animations (required)
 
 An array of animation definitions (see below).
 
+length (required)
+``` json
+"length": 16
+```
+
+length of animation in sprite
+used for setting Godot.Animation.HFrame
+
 directions (optional)
 ``` json
 "directions": 16
@@ -78,7 +87,8 @@ Example:
   "start": 0,
   "length": 6,
   "loop": true,
-  "functions": [ ... ]
+  "values": { ... },
+  "functions": { ... }
 }
 ```
 
@@ -112,31 +122,6 @@ length (required)
 Number of frames in this animation
 
 Frames are read horizontally from the spritesheet
-
-### ⚠ Animation frame rules (VERY IMPORTANT)
-
-Animations must not overlap
-
-If animation A ends at frame 5, animation B must not start at 5
-
-#### Example (❌ invalid):
-
-```
-walk: start 0, length 6  → frames 0–5
-run:  start 5, length 6  → overlaps at frame 5
-```
-
-
-#### Correct version (✅ valid):
-```
-run: start 6
-```
-
-No gaps or overlaps are allowed
-
-The builder validates that frames are continuous and non-overlapping
-
-If this rule is violated, the builder will fail with an error.
 
 loop (optional)
 ``` json
@@ -246,7 +231,7 @@ modyfiers are split by ``;``(semicolon) character
 
 syntax:
 ``` json
-"$param;mod"
+"$param;mod(mod_params, ...);..."
 ```
 
 > If there are no modyfiers provided in type, it mean that it does not support any modyfiers
@@ -312,7 +297,10 @@ Rotation is clockwise
 ##### "to_iso"
 transform angle by iso_scale
 formula:
-`` angle = Vector2(angle_vector, angle_vector * iso_scale).to_angle() ``
+`` angle = Vector2(angle_vector.x, angle_vector.y * iso_scale).to_angle() ``
+
+##### Important note
+angle is supposed to start on (0, 1), so when using (1, 0) (like godot does) as start it wrongly changes values. It will be probably changed in future. 
 
 ### $rotatable:(x, y)
 ``` json
@@ -334,7 +322,10 @@ Useful for directional movement, offsets, impulses, etc.
 ##### "to_iso"
 transform angle by iso_scale
 formula:
-`` angle_vector = Vector2(angle_vector, angle_vector * iso_scale) ``
+`` angle_vector = Vector2(angle_vector.x, angle_vector.y * iso_scale) ``
+
+##### "rotate(_angle)(angle)"
+rotate vector by angle
 
 ### $frametime:value
 ``` json
@@ -366,7 +357,7 @@ $frametime:2 → 2 * (1 / 12) seconds
 ##### "to_iso"
 transform angle by iso_scale
 formula:
-`` angle = Vector2(angle_vector, angle_vector * iso_scale).to_angle() ``
+`` angle = Vector2(angle_vector.x, angle_vector.y * iso_scale).to_angle() ``
 
 ### $s:value (String)
 ``` json
@@ -386,7 +377,10 @@ Not direction-rotated
 ##### "to_iso"
 transform angle by iso_scale
 formula:
-`` angle_vector = Vector2(angle_vector, angle_vector * iso_scale) ``
+`` angle_vector = Vector2(angle_vector.x, angle_vector.y * iso_scale) ``
+
+##### "rotate(_angle)(angle)"
+rotate vector by angle
 
 ### $b:value (Boolean)
 ``` json
@@ -407,17 +401,31 @@ Accepted values:
   "start": 12,
   "length": 4,
   "loop": false,
-  "directions": 8,
-  "functions": [
-    {
-      "name": "apply_impulse",
-      "start": 1,
-      "params": [
-        "$rotatable:(200, 0)",
-        "$frametime:1"
+
+  "functions": {
+    "CharacterBody2D": {
+      "apply_impulse": [
+        {
+          "frame": 1,
+          "params": [
+            "$rotatable:(200, 0);to_iso()",
+            "$frametime:1"
+          ]
+        }
+      ]
+    },
+
+    "AudioPlayer": {
+      "play_sound": [
+        {
+          "frame": 0,
+          "params": [
+            "$s:swing_heavy"
+          ]
+        }
       ]
     }
-  ]
+  }
 }
 ```
 

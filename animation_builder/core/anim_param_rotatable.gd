@@ -10,10 +10,15 @@ func _init(_vector: Vector2, _modyfiers: Array[String] = []):
 func resolve(ctx: AnimParamContext) -> Vector2:
 	var angle = TAU * float(ctx.facing_dir) / float(ctx.directions);
 	var return_vector = vector.rotated(angle);
-	for modyfier in modyfiers:
-		if modyfier.begins_with("to_iso"):
+	for modyfier: String in modyfiers:
+		var parsed_mod: Array[String] = parse_mod(modyfier);
+		if parsed_mod[0].begins_with("to_iso"):
 			return_vector = direction_to_iso(return_vector, ctx.iso_scale);
-	return vector.rotated(angle);
+		if parsed_mod[0].begins_with("rotate"):
+			return_vector = return_vector.rotated(float(parsed_mod[1]));
+		if parsed_mod[0].begins_with("rotate_angle"):
+			return_vector = return_vector.rotated(deg_to_rad(float(parsed_mod[1])));
+	return return_vector;
 
 func _to_string() -> String:
 	return "Rotatable { vector: " + str(vector) + ", modyfiers: " + str(modyfiers) + " }"
