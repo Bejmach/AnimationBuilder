@@ -59,6 +59,15 @@ Use one row of animations as one direction
 
 Default: 16
 
+iso_scale (optional)
+``` json
+"iso_scale" :0.865
+```
+
+Default: 1.0
+
+value used in ``to_iso`` modyfier in vector2 / float based params
+
 ## 3. Animation definition
 
 Example:
@@ -136,21 +145,6 @@ loop (optional)
 
 Whether the animation loops
 Default: true
-
-#### Example (✅ valid):
-
-``` json
-{
-  "name": "walk",
-  "directions": 8
-},
-{
-  "name": "idle",
-  "directions": 8
-}
-```
-
-Default value (if omitted): 16
 
 ## 4. Values (value tracks)
 
@@ -244,6 +238,19 @@ Parameters are defined using typed tokens (see below)
 
 Parameters are written as strings and parsed by the builder.
 
+### Modyfiers
+you can think about them like some sort of functions applied to values
+each type has its own modyfiers
+
+modyfiers are split by ``;``(semicolon) character
+
+syntax:
+``` json
+"$param;mod"
+```
+
+> If there are no modyfiers provided in type, it mean that it does not support any modyfiers
+
 Supported parameter types
 ### Tween constants
 
@@ -301,6 +308,12 @@ Rotation formula:
 
 Rotation is clockwise
 
+#### Modyfiers
+##### "to_iso"
+transform angle by iso_scale
+formula:
+`` angle = Vector2(angle_vector, angle_vector * iso_scale).to_angle() ``
+
 ### $rotatable:(x, y)
 ``` json
 "$rotatable:(1, 0)"
@@ -316,6 +329,12 @@ Rotation formula:
 Rotation is clockwise
 
 Useful for directional movement, offsets, impulses, etc.
+
+#### Modyfiers
+##### "to_iso"
+transform angle by iso_scale
+formula:
+`` angle_vector = Vector2(angle_vector, angle_vector * iso_scale) ``
 
 ### $frametime:value
 ``` json
@@ -343,6 +362,12 @@ $frametime:2 → 2 * (1 / 12) seconds
 "$f:0.75"
 ```
 
+#### Modyfiers
+##### "to_iso"
+transform angle by iso_scale
+formula:
+`` angle = Vector2(angle_vector, angle_vector * iso_scale).to_angle() ``
+
 ### $s:value (String)
 ``` json
 "$s:footstep"
@@ -356,6 +381,12 @@ $frametime:2 → 2 * (1 / 12) seconds
 Plain Vector2
 
 Not direction-rotated
+
+#### Modyfiers
+##### "to_iso"
+transform angle by iso_scale
+formula:
+`` angle_vector = Vector2(angle_vector, angle_vector * iso_scale) ``
 
 ### $b:value (Boolean)
 ``` json

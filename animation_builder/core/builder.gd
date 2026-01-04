@@ -178,34 +178,37 @@ func parse_animation_values(values: Dictionary) -> Dictionary[String, Array]:
 
 func parse_param(value: String) -> AnimParam:
 	var lower = value.to_lower();
-	if const_dict.has(lower):
-		return AnimParamVariant.new(const_dict.get(lower));
-	elif lower.begins_with("$rotatable:"):
-		var pushed_value: AnimParamRotatable = AnimParamRotatable.new(parse_vector2(value));
+	var param_array: PackedStringArray = lower.split(";");
+	var param_name: String = param_array.get(0);
+	param_array.remove_at(0);
+	if const_dict.has(param_name):
+		return AnimParamVariant.new(const_dict.get(param_name), param_array);
+	elif param_name.begins_with("$rotatable:"):
+		var pushed_value: AnimParamRotatable = AnimParamRotatable.new(parse_vector2(param_name), param_array);
 		return pushed_value;
-	elif lower.begins_with("$frametime:"):
-		var frames: float = float(value.substr(value.find(":") + 1).strip_edges());
-		var pushed_value: AnimParamFrameTime = AnimParamFrameTime.new(frames);
+	elif param_name.begins_with("$frametime:"):
+		var frames: float = float(param_name.substr(param_name.find(":") + 1).strip_edges());
+		var pushed_value: AnimParamFrameTime = AnimParamFrameTime.new(frames, param_array);
 		return pushed_value;
-	elif lower.begins_with("$rotation_angle"):
-		var pushed_value: AnimParamRotationAngle = AnimParamRotationAngle.new();
+	elif param_name.begins_with("$rotation_angle"):
+		var pushed_value: AnimParamRotationAngle = AnimParamRotationAngle.new(param_array);
 		return pushed_value;
-	elif lower.begins_with("$rotation"):
-		var pushed_value: AnimParamRotation = AnimParamRotation.new();
+	elif param_name.begins_with("$rotation"):
+		var pushed_value: AnimParamRotation = AnimParamRotation.new(param_array);
 		return pushed_value;
-	elif lower.begins_with("$lib"):
-		var pushed_value: AnimParamLib = AnimParamLib.new();
+	elif param_name.begins_with("$lib"):
+		var pushed_value: AnimParamLib = AnimParamLib.new(param_array);
 		return pushed_value;
-	elif lower.begins_with("$i:"):
+	elif param_name.begins_with("$i:"):
 		var param_value: int = int(value.substr(value.find(":") + 1).strip_edges());
-		return AnimParamVariant.new(param_value);
-	elif lower.begins_with("$f:"):
+		return AnimParamVariant.new(param_value, param_array);
+	elif param_name.begins_with("$f:"):
 		var param_value: float = float(value.substr(value.find(":") + 1).strip_edges());
-		return AnimParamVariant.new(param_value);
-	elif lower.begins_with("$s:"):
+		return AnimParamVariant.new(param_value, param_array);
+	elif param_name.begins_with("$s:"):
 		var param_value: String = value.substr(value.find(":") + 1);
-		return AnimParamVariant.new(param_value);
-	elif lower.begins_with("$v2:"):
+		return AnimParamVariant.new(param_value, param_array);
+	elif param_name.begins_with("$v2:"):
 		var x_start = value.find("(") + 1;
 		var x_end = value.find(",");
 		var y_start = value.find(",") + 1;
@@ -213,14 +216,14 @@ func parse_param(value: String) -> AnimParam:
 		var x: float = float(value.substr(x_start, x_end - x_start).strip_edges());
 		var y: float = float(value.substr(y_start, y_end - y_start).strip_edges());
 		var vector: Vector2 = Vector2(x, y);
-		return AnimParamVariant.new(vector);
-	elif lower.begins_with("$b:"):
+		return AnimParamVariant.new(vector, param_array);
+	elif param_name.begins_with("$b:"):
 		var param_str: String = lower.substr(lower.find(":") + 1).strip_edges();
 		match param_str:
 			"true", "t":
-				return AnimParamVariant.new(true);
+				return AnimParamVariant.new(true, param_array);
 			"false", "f":
-				return AnimParamVariant.new(false);
+				return AnimParamVariant.new(false, param_array);
 			_:
 				push_error("Cant parse bool value from content: ", param_str);
 	else:
@@ -273,7 +276,9 @@ func parse_animation_builder_data(builder_config: AnimationBuilderConfig) -> Ani
 				builder_data.animations.push_back(animation_data);
 		else:
 			push_error("Data in lib ", builder_config.lib_name, "does not have \"animations\" entry");
-			
+		
+		builder_data.iso_scale = json_data.get("iso_scale", 1.0);
+		
 		return builder_data;
 	else:
 		push_error("Data does not contain lib ", builder_config.lib_name);
@@ -286,7 +291,13 @@ func insert_animations(builder_config: AnimationBuilderConfig, builder_data: Ani
 	var texture: Texture2D = load(builder_data.texture);
 	
 	for i in range(0, builder_data.directions, 1):
-		var anim_param_context = AnimParamContext.new(builder_config.lib_name, i, builder_data.directions, frame_time);
+		var anim_param_context = AnimParamContext.new(
+			builder_config.lib_name,
+			i,
+			builder_data.directions,
+			frame_time,
+			builder_data.iso_scale
+		);
 		
 		var anim_name = animation.anim_name + str(i);
 		var anim = Animation.new();
