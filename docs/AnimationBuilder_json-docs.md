@@ -4,6 +4,8 @@ This document describes the JSON format used by Animation Builder to generate 2D
 
 The builder reads a spritesheet and a JSON file, then creates animations inside an AnimationPlayer.
 
+Rotation should be clockwise
+
 ## 1. High-level structure
 
 The JSON file contains one or more animation libraries, keyed by library name:
@@ -68,14 +70,25 @@ Use one row of animations as one direction
 
 Default: 16
 
+start_direction (optional)
+``` json
+"start_direction": "(0, 1)"
+```
+
+Vector2 set as start direction of animations
+value used in ``to_iso`` modyfiers in angle values to transform them correctly
+
+Default (0, 1)
+
 iso_scale (optional)
 ``` json
 "iso_scale" :0.865
 ```
 
-Default: 1.0
-
+tile width divided by tile height
 value used in ``to_iso`` modyfier in vector2 / float based params
+
+Default: 1.0
 
 ## 3. Animation definition
 

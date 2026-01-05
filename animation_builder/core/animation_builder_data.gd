@@ -15,6 +15,10 @@ const TrackData = preload("res://addons/animation_builder/core/track_data.gd");
 ## tile height divided by width
 @export var iso_scale: float = 1.0;
 
+## rotation start direction, used for correctly scaling values using "to_iso" mod
+@export var start_direction: Vector2 = Vector2.RIGHT;
+@export var direction_offset: float;
+
 func _to_string() -> String:
 	var return_str: String = "{ ";
 	return_str += "fps: %s, " % frames_per_second;

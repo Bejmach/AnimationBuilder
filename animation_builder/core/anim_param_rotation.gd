@@ -9,7 +9,7 @@ func resolve(ctx: AnimParamContext) -> float:
 	for modyfier in modyfiers:
 		var parsed_mod: Array[String] = parse_mod(modyfier);
 		if parsed_mod[0].begins_with("to_iso"):
-			angle = angle_to_iso(angle, ctx.iso_scale);
+			angle = angle_to_iso(angle, ctx);
 	return angle;
 
 func _to_string() -> String:
@@ -21,7 +21,7 @@ func direction_to_iso(direction: Vector2, iso_scale: float) -> Vector2:
 			direction.y * iso_scale
 		);
 
-func angle_to_iso(angle: float, iso_scale: float) -> float:
-	var real_dir: Vector2 = Vector2.DOWN.rotated(angle);
-	var iso_dir: Vector2 = direction_to_iso(real_dir, iso_scale).normalized();
-	return iso_dir.angle() - PI/2.0;
+func angle_to_iso(angle: float, ctx: AnimParamContext) -> float:
+	var real_dir: Vector2 = ctx.start_direction.rotated(angle);
+	var iso_dir: Vector2 = direction_to_iso(real_dir, ctx.iso_scale).normalized();
+	return iso_dir.angle() - ctx.direction_offset;

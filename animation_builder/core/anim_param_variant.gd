@@ -15,7 +15,7 @@ func resolve(ctx: AnimParamContext) -> Variant:
 			if return_value is Vector2:
 				return_value = direction_to_iso(return_value, ctx.iso_scale);
 			elif return_value is float:
-				return_value = angle_to_iso(return_value, ctx.iso_scale);
+				return_value = angle_to_iso(return_value, ctx);
 		elif parsed_mod[0].begins_with("rotate_angle"):
 			if return_value is Vector2:
 				return_value = return_value.rotated(deg_to_rad(float(parsed_mod[1])));
@@ -34,7 +34,7 @@ func direction_to_iso(direction: Vector2, iso_scale: float) -> Vector2:
 			direction.y * iso_scale
 		);
 
-func angle_to_iso(angle: float, iso_scale: float) -> float:
-	var real_dir: Vector2 = Vector2.RIGHT.rotated(angle);
-	var iso_dir: Vector2 = direction_to_iso(real_dir, iso_scale).normalized();
-	return iso_dir.angle();
+func angle_to_iso(angle: float, ctx: AnimParamContext) -> float:
+	var real_dir: Vector2 = ctx.start_direction.rotated(angle);
+	var iso_dir: Vector2 = direction_to_iso(real_dir, ctx.iso_scale).normalized();
+	return iso_dir.angle() - ctx.direction_offset;

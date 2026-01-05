@@ -272,6 +272,9 @@ func parse_animation_builder_data(builder_config: AnimationBuilderConfig) -> Ani
 			return null
 			
 		builder_data.iso_scale = json_data.get("iso_scale", 1.0);
+		builder_data.start_direction = parse_vector2(json_data.get("start_direction", Vector2.RIGHT)).normalized();
+		builder_data.direction_offset = builder_data.start_direction.angle();
+		
 		
 		return builder_data;
 	else:
@@ -290,7 +293,9 @@ func insert_animations(builder_config: AnimationBuilderConfig, builder_data: Ani
 			i,
 			builder_data.directions,
 			frame_time,
-			builder_data.iso_scale
+			builder_data.iso_scale,
+			builder_data.start_direction,
+			builder_data.direction_offset
 		);
 		
 		var anim_name = animation.anim_name + str(i);
