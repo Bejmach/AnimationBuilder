@@ -2,9 +2,9 @@
 
 [ext_resource type="Script" uid="uid://dbdyi0v31sjkg" path="res://addons/animation_builder/ui/animation_builder_dock.gd" id="1_43ctn"]
 
-[node name="AnimationBuilderDock" type="VBoxContainer"]
-offset_right = 157.0
-offset_bottom = 106.0
+[node name="AnimationBuilder" type="VBoxContainer"]
+offset_right = 226.0
+offset_bottom = 171.0
 script = ExtResource("1_43ctn")
 
 [node name="FilePath" type="LineEdit" parent="."]

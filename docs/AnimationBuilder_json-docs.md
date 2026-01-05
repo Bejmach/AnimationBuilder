@@ -1,10 +1,13 @@
-# Animation Builder – JSON Format Documentation
+# Animation Builder – JSON Format Documentation (v1.2.0)
 
 This document describes the JSON format used by Animation Builder to generate 2D animations in Godot.
 
-The builder reads a spritesheet and a JSON file, then creates animations inside an AnimationPlayer.
+The builder reads:
+- spritesheet
+- JSON file
+and creates animations inside an AnimationPlayer.
 
-Rotation should be clockwise
+> Rotation is clockwise
 
 ## 1. High-level structure
 
@@ -34,7 +37,8 @@ fps (required)
 
 Frames per second for all animations in this library
 
-Used to calculate animation length and timing
+Used to:
+- Convert frametime parameter into seconds
 
 texture (required)
 ``` json
@@ -43,52 +47,62 @@ texture (required)
 
 Path to the spritesheet texture
 
-Must exist and must be a .png file
-
-animations (required)
-``` json
-"animations": [ ... ]
-```
-
-An array of animation definitions (see below).
+Must exist and should be a .png file
 
 length (required)
 ``` json
 "length": 16
 ```
 
-length of animation in sprite
-used for setting Godot.Animation.HFrame
+Number of horizontal frames in spritesheet
+Used to set:
+- ``Animation.hframes``
 
 directions (optional)
 ``` json
 "directions": 16
 ```
 
-Controlls vframes for sprite
-Use one row of animations as one direction
+Number of directional rows in the spritesheet
 
-Default: 16
+Rules:
+- Each row represents one direction
+- All animation in a library must use the same value
+
+Used to set:
+- ``Animations.vframes``
+
+Default: ``16``
 
 start_direction (optional)
 ``` json
-"start_direction": "(0, 1)"
+"start_direction": "(1, 0)"
 ```
 
-Vector2 set as start direction of animations
-value used in ``to_iso`` modyfiers in angle values to transform them correctly
+Vector2 representing the forward direction
 
-Default (0, 1)
+Used by:
+- ``to_iso()`` modyfiers on angles
+
+Default: ``(1, 0)``
 
 iso_scale (optional)
 ``` json
 "iso_scale" :0.865
 ```
 
-tile width divided by tile height
-value used in ``to_iso`` modyfier in vector2 / float based params
+Isometric scale factor (tile width ÷ tile height)
+Used by:
+- ``to_iso()`` modyfiers
 
 Default: 1.0
+
+animations (required)
+``` json
+"animations": [ ... ]
+```
+
+An array of animation definitions (see in point 3).
 
 ## 3. Animation definition
 
@@ -105,7 +119,7 @@ Example:
 }
 ```
 
-name (required)
+name (opitonal)
 ``` json
 "name": "walk"
 ```
@@ -113,10 +127,12 @@ name (required)
 Base name of the animation
 
 The builder automatically creates one animation per direction
-
+with names ``{name}{dir}``
 Final animation names will be:
-
+```
 walk0, walk1, walk2, ...
+```
+default: ``""``
 
 start (required)
 ``` json
@@ -125,7 +141,7 @@ start (required)
 
 Horizontal frame index where this animation starts
 
-Measured in frames, not pixels
+Measured in frames, not seconds
 
 length (required)
 ``` json
@@ -142,20 +158,18 @@ loop (optional)
 ```
 
 Whether the animation loops
-Default: true
+Default: ``true``
 
 ## 4. Values (value tracks)
 
-Values still needs to be improved and for now I wouldn't encourage you to use them. It's better to use functions for now
-
-Values change on frame
+Values modify node properties at specific frames.
 
 Example:
 
 ``` json
 "values": {
-    "node_path:value": {
-        "interpolation": "animation.interpolation_(type)",
+    "Node2D:rotation": {
+        "interpolation": "animation.interpolation_linear",
         "values": [
             {
                 "frame": 2.5,
@@ -182,7 +196,7 @@ frame (required)
 "frame": "2.5",
 ```
 
-Time of value change in frames
+Time of value change in frames (can be fractional)
 
 value (required)
 
@@ -190,7 +204,7 @@ value (required)
 "value": "$b:true",
 ```
 
-Value to change as param from Parameter System (Read more in section 6.)
+Value using the Parameter System (Read more in section 6.)
 
 ## 5. Functions (method tracks)
 
@@ -200,16 +214,14 @@ Example:
 
 ``` json
 "functions": {
-  "node_path": {
-    "method_name": [
+  "CharacterBody2D": {
+    "apply_impulse": [
       {
-        "frame": 3,
+        "frame": 1.5,
         "values": [
-          "$lib",
-          ...
+          "$rotatable:(200, 0)",
           ],
       },
-      ...
     ]
   }
 }
@@ -218,19 +230,19 @@ Example:
 ### Function properties
 frame (optional)
 ``` json
-"frame": 3
+"frame": 1.5
 ```
 
-Frame at which the function runs
+Frame at which the function runs (can be fractional)
 
-params (optional)
+values (optional)
 ``` json
-"params": [ ... ]
+"values": [ ... ]
 ```
 
-Array of parameters passed to the method
+Array of values passed to the method
 
-Parameters are defined using typed tokens (see below)
+values are defined using Parameter System (see below)
 
 ## 6. Parameter system
 
@@ -244,19 +256,24 @@ modyfiers are split by ``;``(semicolon) character
 
 syntax:
 ``` json
-"$param;mod(mod_params, ...);..."
+"$param;mod(arg1, arg2);mod2(...)"
 ```
+- modyfiers are applied left to right
+- If a type does not support modyfier, they are ignored
 
 > If there are no modyfiers provided in type, it mean that it does not support any modyfiers
 
-Supported parameter types
-### Tween constants
+## 7. Supported parameter types
+### Constants
 
-You can directly use tween constants by name:
+You can directly use constants by names
 ```
 "tween.trans_linear"
-"tween.ease_in_out"
+"animation.interpolation_nearest"
 ```
+
+
+#### Tween constants
 
 Supported values:
 - ``tween.trans_linear``
@@ -276,9 +293,7 @@ Supported values:
 - ``tween.ease_in_out``
 - ``tween.ease_out_in``
 
-### Animation constants
-
-same as tweens
+#### Animation constants
 
 Supported values:
 - ``animation.interpolation_nearest``
@@ -292,69 +307,77 @@ Supported values:
 "$lib"
 ```
 
-name of the animation library in string
+Returns the animation library name (String).
 
 ### $rotation(_angle)
 ``` json
 "$rotation(_angle)"
 ```
 
-rotation / rotation angle of current direction in float
+Returns rotation (angle) for the current direction.
 
-Rotation formula:
+Formula:
 ``angle = (current_direction / total_directions)``
 
 Rotation is clockwise
 
 #### Modyfiers
-##### "to_iso"
-transform angle by iso_scale
-formula:
-`` angle = Vector2(angle_vector.x, angle_vector.y * iso_scale).to_angle() ``
-
-##### Important note
-angle is supposed to start on (0, 1), so when using (1, 0) (like godot does) as start it wrongly changes values. It will be probably changed in future. 
+- ``to_iso()``
 
 ### $rotatable:(x, y)
 ``` json
 "$rotatable:(1, 0)"
 ```
 
-A Vector2 that is rotated per direction
-
-Rotation formula:
-
-``angle = (current_direction / total_directions) * 360°``
-
+Returns a ``Vector2`` rotated per direction.
 
 Rotation is clockwise
 
 Useful for directional movement, offsets, impulses, etc.
 
 #### Modyfiers
-##### "to_iso"
-transform angle by iso_scale
-formula:
-`` angle_vector = Vector2(angle_vector.x, angle_vector.y * iso_scale) ``
-
-##### "rotate(_angle)(angle)"
-rotate vector by angle
+- ``to_iso()``
+- ``scale(f)``
+- ``invert_x()``
+- ``invert_y()``
+- ``rotate(rad)``
+- ``rotate_angle(deg)``
 
 ### $frametime:value
 ``` json
 "$frametime:2"
 ```
 
-A float multiplied by the animation’s frame time
-
-Allows specifying timing in frames instead of seconds
+Returns seconds based on animation FPS.
 
 Example:
-
-
+```
 fps = 12
 
-$frametime:2 → 2 * (1 / 12) seconds
+$frametime:2 -> 0.1(6)s
+```
+
+#### Modyfiers
+- ``clamp(min, max)``
+- ``snap(step)``
+
+### $dir
+``` json
+"$dir"
+```
+
+Returns direction index(int) 
+
+### dir_norm
+``` json
+"$dir_norm"
+```
+
+Returns normalized direction(0.0 -> 1.0)
+
+#### Modyfiers
+- ``clamp(min, max)``
+- ``snap(step)``
 
 ### $i:value (Integer)
 ``` json
@@ -367,10 +390,9 @@ $frametime:2 → 2 * (1 / 12) seconds
 ```
 
 #### Modyfiers
-##### "to_iso"
-transform angle by iso_scale
-formula:
-`` angle = Vector2(angle_vector.x, angle_vector.y * iso_scale).to_angle() ``
+- ``to_iso()``
+- ``clamp(min, max)``
+- ``snap(step)``
 
 ### $s:value (String)
 ``` json
@@ -387,13 +409,12 @@ Plain Vector2
 Not direction-rotated
 
 #### Modyfiers
-##### "to_iso"
-transform angle by iso_scale
-formula:
-`` angle_vector = Vector2(angle_vector.x, angle_vector.y * iso_scale) ``
-
-##### "rotate(_angle)(angle)"
-rotate vector by angle
+- ``to_iso()``
+- ``scale(f)``
+- ``invert_x()``
+- ``invert_y()``
+- ``rotate(rad)``
+- ``rotate_angle(deg)``
 
 ### $b:value (Boolean)
 ``` json
@@ -407,7 +428,7 @@ Accepted values:
 
 ``false, f``
 
-## 7. Example animation entry
+## 8. Example animation entry
 ``` json
 {
   "name": "attack",
@@ -442,17 +463,13 @@ Accepted values:
 }
 ```
 
-8. Common errors
+9. Common errors
 Error	Cause
-- Animations overlap	start + length conflicts
-- Missing frames	Gaps between animations
 - Wrong directions	Animations use different directions
 - Invalid param	Unsupported $type:
-- Method not called	Method name not found on node
-9. Summary of critical rules
+- Method not found on node
+10. Summary of critical rules
 
-- ✔ All animations must use the same directions value
-- ✔ Animations must not overlap
-- ✔ Frame indices must be continuous
-- ✔ Spritesheet must be correctly aligned
-- ✔ Parameters must follow the supported formats
+- All animations must use the same directions value
+- Spritesheet must be correctly aligned
+- Parameters must follow the supported formats

@@ -12,11 +12,17 @@ func resolve(ctx: AnimParamContext) -> Vector2:
 	var return_vector = vector.rotated(angle);
 	for modyfier: String in modyfiers:
 		var parsed_mod: Array[String] = parse_mod(modyfier);
-		if parsed_mod[0].begins_with("to_iso"):
+		if parsed_mod[0].begins_with("scale"):
+			return_vector *= float(parsed_mod[1]);
+		elif parsed_mod[0].begins_with("invert_x"):
+			return_vector = Vector2(-return_vector.x, return_vector.y);
+		elif parsed_mod[0].begins_with("invert_y"):
+			return_vector = Vector2(return_vector.x, -return_vector.y);
+		elif parsed_mod[0].begins_with("to_iso"):
 			return_vector = direction_to_iso(return_vector, ctx.iso_scale);
-		if parsed_mod[0].begins_with("rotate"):
+		elif parsed_mod[0].begins_with("rotate"):
 			return_vector = return_vector.rotated(float(parsed_mod[1]));
-		if parsed_mod[0].begins_with("rotate_angle"):
+		elif parsed_mod[0].begins_with("rotate_angle"):
 			return_vector = return_vector.rotated(deg_to_rad(float(parsed_mod[1])));
 	return return_vector;
 

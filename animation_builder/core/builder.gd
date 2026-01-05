@@ -13,6 +13,8 @@ const AnimParamRotatable = preload("res://addons/animation_builder/core/anim_par
 const AnimParamFrameTime = preload("res://addons/animation_builder/core/anim_param_frametime.gd");
 const AnimParamVariant = preload("res://addons/animation_builder/core/anim_param_variant.gd");
 const AnimParamLib = preload("res://addons/animation_builder/core/anim_param_lib.gd");
+const AnimParamDir = preload("res://addons/animation_builder/core/anim_param_dir.gd");
+const AnimParamDirNorm = preload("res://addons/animation_builder/core/anim_param_dir_norm.gd");
 
 const TrackData = preload("res://addons/animation_builder/core/track_data.gd");
 const MethodData = preload("res://addons/animation_builder/core/method_data.gd");
@@ -40,6 +42,9 @@ var const_dict: Dictionary[String, Variant] = {
 	"animation.interpolation_cubic_angle": Animation.INTERPOLATION_CUBIC_ANGLE,
 	"animation.interpolation_linear_angle": Animation.INTERPOLATION_LINEAR_ANGLE,
 };
+
+func _init() -> void:
+	pass;
 
 func run(animation_player: AnimationPlayer, builder_config: AnimationBuilderConfig) -> void:
 	print("Heating oven");
@@ -186,6 +191,12 @@ func parse_param(value: String) -> AnimParam:
 		return pushed_value;
 	elif param_name.begins_with("$lib"):
 		var pushed_value: AnimParamLib = AnimParamLib.new(param_array);
+		return pushed_value;
+	elif param_name.begins_with("$dir_norm"):
+		var pushed_value: AnimParamDirNorm = AnimParamDirNorm.new(param_array);
+		return pushed_value;
+	elif param_name.begins_with("$dir"):
+		var pushed_value: AnimParamDir = AnimParamDir.new(param_array);
 		return pushed_value;
 	elif param_name.begins_with("$i:"):
 		var param_value: int = int(value.substr(value.find(":") + 1).strip_edges());

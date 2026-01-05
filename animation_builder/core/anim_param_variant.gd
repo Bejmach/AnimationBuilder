@@ -11,17 +11,28 @@ func resolve(ctx: AnimParamContext) -> Variant:
 	var return_value = value;
 	for modyfier: String in modyfiers:
 		var parsed_mod: Array[String] = parse_mod(modyfier);
-		if parsed_mod[0].begins_with("to_iso"):
-			if return_value is Vector2:
+		if return_value is Vector2:
+			if parsed_mod[0].begins_with("scale"):
+				return_value *= float(parsed_mod[1]);
+			elif parsed_mod[0].begins_with("invert_x"):
+				return_value = Vector2(-return_value.x, return_value.y);
+			elif parsed_mod[0].begins_with("invert_y"):
+				return_value = Vector2(return_value.x, -return_value.y);
+			elif parsed_mod[0].begins_with("to_iso"):
 				return_value = direction_to_iso(return_value, ctx.iso_scale);
-			elif return_value is float:
-				return_value = angle_to_iso(return_value, ctx);
-		elif parsed_mod[0].begins_with("rotate_angle"):
-			if return_value is Vector2:
+			elif parsed_mod[0].begins_with("rotate_angle"):
 				return_value = return_value.rotated(deg_to_rad(float(parsed_mod[1])));
-		elif parsed_mod[0].begins_with("rotate"):
-			if return_value is Vector2:
+			elif parsed_mod[0].begins_with("rotate"):
 				return_value = return_value.rotated(float(parsed_mod[1]));
+		
+		elif return_value is float:
+			if parsed_mod[0].begins_with("to_iso"):
+				return_value = angle_to_iso(return_value, ctx);
+			elif parsed_mod[0].begins_with("clamp"):
+				return_value = clamp(return_value, float(parsed_mod[1]), float(parsed_mod[2]));
+			elif parsed_mod[0].begins_with("snap"):
+				return_value = snapped(return_value, float(parsed_mod[1]));
+		
 	return return_value;
 
 func _to_string() -> String:
