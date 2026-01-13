@@ -6,7 +6,6 @@ const AnimationBuilder = preload("res://addons/animation_builder/core/builder.gd
 
 @onready var file_path: LineEdit = $FilePath;
 @onready var lib_name: LineEdit = $LibName;
-@onready var sprite_path: LineEdit = $SpritePath;
 @onready var overwrite: CheckBox = $Overwrite;
 
 
@@ -28,7 +27,7 @@ func _on_button_pressed() -> void:
 		push_error("First selected node is not AnimationPlayer");
 		return;
 	
-	var config: AnimationBuilderConfig = AnimationBuilderConfig.new(file_path.text, lib_name.text, sprite_path.text, overwrite.button_pressed);
+	var config: AnimationBuilderConfig = AnimationBuilderConfig.new(file_path.text, lib_name.text, overwrite.button_pressed);
 	var builder = AnimationBuilder.new();
 	
 	builder.run(animation_player, config);

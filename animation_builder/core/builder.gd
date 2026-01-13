@@ -16,6 +16,7 @@ const AnimParamLib = preload("res://addons/animation_builder/core/anim_param_lib
 const AnimParamDir = preload("res://addons/animation_builder/core/anim_param_dir.gd");
 const AnimParamDirNorm = preload("res://addons/animation_builder/core/anim_param_dir_norm.gd");
 
+const SpriteData = preload("res://addons/animation_builder/core/sprite_data.gd");
 const TrackData = preload("res://addons/animation_builder/core/track_data.gd");
 const MethodData = preload("res://addons/animation_builder/core/method_data.gd");
 
@@ -259,15 +260,28 @@ func parse_animation_builder_data(builder_config: AnimationBuilderConfig) -> Ani
 			push_error("Data in lib ", builder_config.lib_name, "does not have \"fps\" entry");
 			return null;
 		
-		if json_data.has("texture"):
-			if !(FileAccess.file_exists(json_data.get("texture")) && (json_data.get("texture") as String).ends_with(".png")):
-				push_error("texture file \"", json_data.get("texture"),"\" does not exits, or does not have png format");
-				return null;
-			builder_data.texture = json_data.get("texture");
+		var sprites: Dictionary[String, SpriteData] = {};
+		
+		if json_data.has("sprites"):
+			var sprite_dict: Dictionary = json_data.get("sprites");
+			for sprite_path: String in sprite_dict:
+				var entry: Dictionary = sprite_dict.get(sprite_path);
+				if !entry.has("texture"):
+					push_error("No texture path provided in lib ", builder_config.lib_name, " in sprite ", sprite_path);
+					return null;
+				var texture: String = entry.get("texture");
+				if !FileAccess.file_exists(texture):
+					push_error("Texture on path ", texture, " does not exist");
+					return null;
+				var z_offset: int = entry.get("z_offset", 0);
+				var spr_data: SpriteData = SpriteData.new(texture, z_offset);
+				sprites.set(sprite_path, spr_data);
 		else:
-			push_error("Data in lib ", builder_config.lib_name, "does not have \"texture\" entry");
+			push_error("Data in lib ", builder_config.lib_name, "does not have \"sprites\" entry");
 			return null;
-			
+		
+		builder_data.sprites = sprites;
+		
 		if json_data.has("animations"):
 			builder_data.animations = [];
 			for animation: Dictionary in json_data.get("animations"):
@@ -285,7 +299,7 @@ func parse_animation_builder_data(builder_config: AnimationBuilderConfig) -> Ani
 		builder_data.iso_scale = json_data.get("iso_scale", 1.0);
 		builder_data.start_direction = parse_vector2(json_data.get("start_direction", Vector2.RIGHT)).normalized();
 		builder_data.direction_offset = builder_data.start_direction.angle();
-		
+		builder_data.z_index = json_data.get("z_index", 0);
 		
 		return builder_data;
 	else:
@@ -296,7 +310,6 @@ func parse_animation_builder_data(builder_config: AnimationBuilderConfig) -> Ani
 
 func insert_animations(builder_config: AnimationBuilderConfig, builder_data: AnimationBuilderData, animation_lib: AnimationLibrary, animation: AnimationData, horizontal_frames: int):
 	var frame_time = 1.0 / float(builder_data.frames_per_second);	
-	var texture: Texture2D = load(builder_data.texture);
 	
 	for i in range(0, builder_data.directions, 1):
 		var anim_param_context = AnimParamContext.new(
@@ -318,34 +331,50 @@ func insert_animations(builder_config: AnimationBuilderConfig, builder_data: Ani
 		else:
 			anim.loop_mode = Animation.LOOP_NONE;
 		
-		var frame_track = anim.add_track(Animation.TYPE_VALUE);
-		anim.track_set_interpolation_loop_wrap(frame_track, false);
-		anim.track_set_interpolation_type(frame_track, Animation.INTERPOLATION_NEAREST);
-		anim.track_set_path(frame_track, builder_config.sprite_path + ":frame");
+		var frame_tracks: Array[int] = []
 		
-		var texture_track = anim.add_track(Animation.TYPE_VALUE);
-		anim.track_set_interpolation_loop_wrap(texture_track, false);
-		anim.track_set_interpolation_type(texture_track, Animation.INTERPOLATION_NEAREST);
-		anim.value_track_set_update_mode(texture_track, Animation.UPDATE_DISCRETE);
-		anim.track_set_path(texture_track, builder_config.sprite_path + ":texture");
+		for sprite_path in builder_data.sprites:
+			var entry: SpriteData = builder_data.sprites.get(sprite_path);
+			var texture: Texture2D = load(entry.texture_path);
+			
+			
+			var frame_track = anim.add_track(Animation.TYPE_VALUE);
+			anim.track_set_interpolation_loop_wrap(frame_track, false);
+			anim.track_set_interpolation_type(frame_track, Animation.INTERPOLATION_NEAREST);
+			anim.track_set_path(frame_track, sprite_path + ":frame");
+			frame_tracks.push_back(frame_track);
 		
-		anim.track_insert_key(texture_track, 0, texture);
+			var texture_track = anim.add_track(Animation.TYPE_VALUE);
+			anim.track_set_interpolation_loop_wrap(texture_track, false);
+			anim.track_set_interpolation_type(texture_track, Animation.INTERPOLATION_NEAREST);
+			anim.value_track_set_update_mode(texture_track, Animation.UPDATE_DISCRETE);
+			anim.track_set_path(texture_track, sprite_path + ":texture");
+			
+			anim.track_insert_key(texture_track, 0, texture);
 		
-		var HFrames_track = anim.add_track(Animation.TYPE_VALUE);
-		anim.track_set_interpolation_loop_wrap(HFrames_track, false);
-		anim.track_set_interpolation_type(HFrames_track, Animation.INTERPOLATION_NEAREST);
-		anim.value_track_set_update_mode(HFrames_track, Animation.UPDATE_DISCRETE);
-		anim.track_set_path(HFrames_track, builder_config.sprite_path + ":hframes");
+			var HFrames_track = anim.add_track(Animation.TYPE_VALUE);
+			anim.track_set_interpolation_loop_wrap(HFrames_track, false);
+			anim.track_set_interpolation_type(HFrames_track, Animation.INTERPOLATION_NEAREST);
+			anim.value_track_set_update_mode(HFrames_track, Animation.UPDATE_DISCRETE);
+			anim.track_set_path(HFrames_track, sprite_path + ":hframes");
+			
+			anim.track_insert_key(HFrames_track, 0, horizontal_frames);
 		
-		anim.track_insert_key(HFrames_track, 0, horizontal_frames);
-		
-		var VFrames_track = anim.add_track(Animation.TYPE_VALUE);
-		anim.track_set_interpolation_loop_wrap(VFrames_track, false);
-		anim.track_set_interpolation_type(VFrames_track, Animation.INTERPOLATION_NEAREST);
-		anim.value_track_set_update_mode(VFrames_track, Animation.UPDATE_DISCRETE);
-		anim.track_set_path(VFrames_track, builder_config.sprite_path + ":vframes");
-		
-		anim.track_insert_key(VFrames_track, 0, builder_data.directions);
+			var VFrames_track = anim.add_track(Animation.TYPE_VALUE);
+			anim.track_set_interpolation_loop_wrap(VFrames_track, false);
+			anim.track_set_interpolation_type(VFrames_track, Animation.INTERPOLATION_NEAREST);
+			anim.value_track_set_update_mode(VFrames_track, Animation.UPDATE_DISCRETE);
+			anim.track_set_path(VFrames_track, sprite_path + ":vframes");
+			
+			anim.track_insert_key(VFrames_track, 0, builder_data.directions);
+			
+			var z_index_track = anim.add_track(Animation.TYPE_VALUE);
+			anim.track_set_interpolation_loop_wrap(VFrames_track, false);
+			anim.track_set_interpolation_type(z_index_track, Animation.INTERPOLATION_NEAREST);
+			anim.value_track_set_update_mode(z_index_track, Animation.UPDATE_DISCRETE);
+			anim.track_set_path(z_index_track, sprite_path + ":z_index");
+			
+			anim.track_insert_key(z_index_track, 0, builder_data.z_index + entry.z_offset);
 		
 		#print("Animation: ", animation);
 		
@@ -376,6 +405,7 @@ func insert_animations(builder_config: AnimationBuilderConfig, builder_data: Ani
 					anim.track_insert_key(method_track, frame_time * method.frame, {"method": method.method_name, "args": params});
 		
 		for frame in range(0, animation.length, 1):
-			anim.track_insert_key(frame_track, frame*frame_time, i*horizontal_frames + frame + animation.start);
+			for frame_track in frame_tracks:
+				anim.track_insert_key(frame_track, frame*frame_time, i*horizontal_frames + frame + animation.start);
 		
 		animation_lib.add_animation(anim_name, anim);
