@@ -16,7 +16,7 @@ The JSON file contains one or more animation libraries, keyed by library name:
 {
   "character": {
     "fps": 12,
-    "texture": "res://sprites/character.png",
+    "sprites": { ... },
     "length": 16,
     "directions": 16,
     "animations": [
@@ -40,14 +40,21 @@ Frames per second for all animations in this library
 Used to:
 - Convert frametime parameter into seconds
 
-texture (required)
+sprites (required)
 ``` json
-"texture": "res://sprites/character.png"
+"sprites": {
+  "NodePath": {
+    "texture": "res://texture_path.png",
+    "z_offset": 0,
+  }
+}
 ```
 
-Path to the spritesheet texture
+Sprite data, which allow for editing multiple sprites in one animation
+Usefull for overlaying sprites
 
-Must exist and should be a .png file
+ALL TEXTURES NEEDS TO BE OF THE SAME LENGTH AND SAME DIRECTIONS
+that does not mean, that they need to be of the same pixel based size, but the plugin will still set the same (v/h)frames for all of them
 
 length (required)
 ``` json
@@ -96,6 +103,13 @@ Used by:
 - ``to_iso()`` modyfiers
 
 Default: 1.0
+
+z_index (optional)
+``` json
+"z_index": 0
+```
+
+base z_index that is offseted for each sprite by their z_offset
 
 animations (required)
 ``` json
@@ -435,6 +449,12 @@ Accepted values:
   "start": 12,
   "length": 4,
   "loop": false,
+
+  "sprites": {
+    "Sprite2D": {
+      "texture": "res://attack_sheet.png",
+    }
+  },
 
   "functions": {
     "CharacterBody2D": {
